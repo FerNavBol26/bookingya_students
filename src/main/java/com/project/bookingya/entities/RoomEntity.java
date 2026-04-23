@@ -36,4 +36,12 @@ public class RoomEntity {
 
     @Column(nullable = false)
     private Boolean available;
+
+    public void setPricePerNight(double price) {
+        this.nightlyPrice = BigDecimal.valueOf(price);
+    }
+
+    public double getPricePerNight() {
+        return this.nightlyPrice.doubleValue();
+    }
 }

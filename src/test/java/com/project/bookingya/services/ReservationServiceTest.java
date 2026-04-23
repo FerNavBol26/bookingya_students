@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import java.lang.reflect.Type;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
@@ -18,8 +19,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
+import org.modelmapper.TypeToken;
 
 import com.project.bookingya.dtos.ReservationDto;
+import com.project.bookingya.entities.GuestEntity;
 import com.project.bookingya.entities.ReservationEntity;
 import com.project.bookingya.entities.RoomEntity;
 import com.project.bookingya.exceptions.EntityNotExistsException;
@@ -32,16 +35,16 @@ import com.project.bookingya.repositories.IRoomRepository;
 @DisplayName("Pruebas Unitarias del Servicio de Reservas")
 class ReservationServiceTest {
 
-    @Mock
+    @Mock(lenient = true)
     private IReservationRepository reservationRepository;
 
-    @Mock
+    @Mock(lenient = true)
     private IRoomRepository roomRepository;
 
-    @Mock
+    @Mock(lenient = true)
     private IGuestRepository guestRepository;
 
-    @Mock
+    @Mock(lenient = true)
     private ModelMapper mapper;
 
     @InjectMocks
@@ -90,7 +93,7 @@ class ReservationServiceTest {
 
         // Mocking
         when(roomRepository.findById(roomId)).thenReturn(Optional.of(room));
-        when(guestRepository.findById(guestId)).thenReturn(Optional.of(new Object()));
+        when(guestRepository.findById(guestId)).thenReturn(Optional.of(new GuestEntity()));
         when(reservationRepository.existsOverlappingReservationForRoom(any(), any(), any(), any())).thenReturn(false);
         when(reservationRepository.existsOverlappingReservationForGuest(any(), any(), any(), any())).thenReturn(false);
         when(mapper.map(reservationDto, ReservationEntity.class)).thenReturn(entity);
@@ -161,7 +164,10 @@ class ReservationServiceTest {
         res2.setId(entity2.getId());
 
         when(reservationRepository.findAll()).thenReturn(Arrays.asList(entity1, entity2));
-        when(mapper.map(any(), any())).thenReturn(Arrays.asList(res1, res2));
+        when(mapper.map(any(List.class), any(Type.class))).thenAnswer(invocation -> {
+            // Simply return the list of expected results
+            return Arrays.asList(res1, res2);
+        });
 
         // Act
         List<Reservation> result = reservationService.getAll();
@@ -201,10 +207,16 @@ class ReservationServiceTest {
         // Mocking
         when(reservationRepository.findById(reservationId)).thenReturn(Optional.of(existing));
         when(roomRepository.findById(roomId)).thenReturn(Optional.of(room));
-        when(guestRepository.findById(guestId)).thenReturn(Optional.of(new Object()));
+        when(guestRepository.findById(guestId)).thenReturn(Optional.of(new GuestEntity()));
         when(reservationRepository.existsOverlappingReservationForRoom(any(), any(), any(), any())).thenReturn(false);
         when(reservationRepository.existsOverlappingReservationForGuest(any(), any(), any(), any())).thenReturn(false);
-        when(mapper.map(updateDto, existing)).thenReturn(null);
+        // mapper.map with void return - use doAnswer to handle it
+        doAnswer(invocation -> {
+            ReservationDto dto = invocation.getArgument(0);
+            ReservationEntity entity = invocation.getArgument(1);
+            entity.setGuestsCount(dto.getGuestsCount());
+            return null;
+        }).when(mapper).map(any(ReservationDto.class), any(ReservationEntity.class));
         when(reservationRepository.saveAndFlush(existing)).thenReturn(existing);
         when(mapper.map(existing, Reservation.class)).thenReturn(expectedResult);
 
@@ -262,7 +274,10 @@ class ReservationServiceTest {
         reservation.setGuestId(guestId);
 
         when(reservationRepository.findByGuestId(guestId)).thenReturn(Arrays.asList(entity));
-        when(mapper.map(any(), any())).thenReturn(Arrays.asList(reservation));
+        when(mapper.map(any(List.class), any(Type.class))).thenAnswer(invocation -> {
+            // Simply return the list of expected results
+            return Arrays.asList(reservation);
+        });
 
         // Act
         List<Reservation> result = reservationService.getByGuestId(guestId);

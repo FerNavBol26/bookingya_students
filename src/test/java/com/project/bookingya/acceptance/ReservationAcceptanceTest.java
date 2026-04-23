@@ -44,18 +44,21 @@ class ReservationAcceptanceTest {
 
     @BeforeEach
     void setUp() {
-        // Crear un huésped de prueba
+        // Crear un huésped de prueba con email único
         GuestEntity guest = new GuestEntity();
+        guest.setIdentification(UUID.randomUUID().toString());
         guest.setFirstName("Juan");
         guest.setLastName("Pérez");
-        guest.setEmail("juan@example.com");
+        guest.setEmail("juan-" + UUID.randomUUID() + "@example.com");
         guest.setPhoneNumber("3001234567");
         GuestEntity savedGuest = guestRepository.save(guest);
         guestId = savedGuest.getId();
 
-        // Crear una habitación disponible
+        // Crear una habitación disponible con todos los campos requeridos
         RoomEntity room = new RoomEntity();
+        room.setCode("DLX-" + UUID.randomUUID().toString().substring(0, 8));
         room.setName("Habitación Deluxe");
+        room.setCity("Bogotá");
         room.setAvailable(true);
         room.setMaxGuests(6);
         room.setPricePerNight(150.0);
@@ -104,8 +107,9 @@ class ReservationAcceptanceTest {
 
         assertNotNull(queried);
         assertEquals(saved.getId(), queried.getId());
-        assertEquals(saved.getCheckIn(), queried.getCheckIn());
-        assertEquals(saved.getCheckOut(), queried.getCheckOut());
+        // Compare timestamps truncated to seconds to avoid precision issues
+        assertEquals(saved.getCheckIn().withNano(0), queried.getCheckIn().withNano(0));
+        assertEquals(saved.getCheckOut().withNano(0), queried.getCheckOut().withNano(0));
     }
 
     @Test
@@ -198,9 +202,10 @@ class ReservationAcceptanceTest {
 
         // Intentar crear otra reserva que se superpone
         GuestEntity guest2 = new GuestEntity();
+        guest2.setIdentification(UUID.randomUUID().toString());
         guest2.setFirstName("Maria");
         guest2.setLastName("Garcia");
-        guest2.setEmail("maria@example.com");
+        guest2.setEmail("maria-" + UUID.randomUUID() + "@example.com");
         guest2.setPhoneNumber("3002345678");
         GuestEntity savedGuest2 = guestRepository.save(guest2);
 
