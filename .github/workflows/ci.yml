@@ -26,9 +26,9 @@ jobs:
       - name: Build with Maven
         run: mvn -B clean compile -DskipTests
 
-  # Stage 2: Test Fase 1 (Unit Tests)
+  # Stage 2: Test Fase 1 (TDD - Test Driven Development)
   test-fase-1:
-    name: "✅ Fase 1 - Pruebas Unitarias"
+    name: "✅ Fase 1 - TDD"
     runs-on: ubuntu-latest
     needs: build
 
@@ -43,17 +43,17 @@ jobs:
           distribution: 'temurin'
           cache: maven
       
-      - name: Ejecutar Pruebas Unitarias
+      - name: Ejecutar Pruebas Unitarias (TDD)
         run: mvn -B test -Dtest=*ServiceTest --file pom.xml
       
       - name: Generar reporte de tests Fase 1
         if: always()
         run: |
-          echo "✓ Fase 1: Pruebas Unitarias completadas"
+          echo "✓ Fase 1 - TDD: Pruebas Unitarias completadas"
 
-  # Stage 3: Test Fase 2 (Acceptance Tests)
+  # Stage 3: Test Fase 2 (BDD - Behavior Driven Development)
   test-fase-2:
-    name: "✅ Fase 2 - Pruebas de Aceptación"
+    name: "✅ Fase 2 - BDD"
     runs-on: ubuntu-latest
     needs: build
 
@@ -68,17 +68,17 @@ jobs:
           distribution: 'temurin'
           cache: maven
       
-      - name: Ejecutar Pruebas de Aceptación
+      - name: Ejecutar Pruebas de Aceptación (BDD)
         run: mvn -B test -Dtest=*AcceptanceTest --file pom.xml
       
       - name: Generar reporte de tests Fase 2
         if: always()
         run: |
-          echo "✓ Fase 2: Pruebas de Aceptación completadas"
+          echo "✓ Fase 2 - BDD: Pruebas de Aceptación completadas"
 
-  # Stage 4: Integration & Quality Checks
+  # Stage 4: Integration & Quality Checks (ATDD - Acceptance Test Driven Development)
   test-fase-3:
-    name: "🔍 Fase 3 - Validación y Calidad"
+    name: "🔍 Fase 3 - ATDD"
     runs-on: ubuntu-latest
     needs: [test-fase-1, test-fase-2]
 
@@ -101,7 +101,7 @@ jobs:
       
       - name: Verificar cobertura
         run: |
-          echo "✓ Fase 3: Validaciones completadas"
+          echo "✓ Fase 3 - ATDD: Validaciones completadas"
           echo "✓ Todos los tests pasaron exitosamente"
 
   # Final Status
@@ -118,7 +118,7 @@ jobs:
           echo "✅ PIPELINE COMPLETADO CON ÉXITO"
           echo "================================"
           echo "Build: ✓ Compilación exitosa"
-          echo "Fase 1: ✓ Tests unitarios pasados"
-          echo "Fase 2: ✓ Tests de aceptación pasados"
-          echo "Fase 3: ✓ Validaciones completadas"
+          echo "Fase 1 - TDD: ✓ Tests unitarios pasados"
+          echo "Fase 2 - BDD: ✓ Tests de aceptación pasados"
+          echo "Fase 3 - ATDD: ✓ Validaciones completadas"
           echo "================================"
