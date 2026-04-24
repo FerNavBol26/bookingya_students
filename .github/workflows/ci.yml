@@ -9,7 +9,7 @@ on:
 jobs:
   # Stage 1: Build
   build:
-    name: "📦 Build - Compilación"
+    name: Build
     runs-on: ubuntu-latest
 
     steps:
@@ -26,9 +26,9 @@ jobs:
       - name: Build with Maven
         run: mvn -B clean compile -DskipTests
 
-  # Stage 2: Test Fase 1 (TDD - Test Driven Development)
+  # Stage 2: Test Fase 1 (TDD - Unit Tests)
   test-fase-1:
-    name: "✅ Fase 1 - TDD"
+    name: Fase 1 - Unit Tests
     runs-on: ubuntu-latest
     needs: build
 
@@ -43,17 +43,12 @@ jobs:
           distribution: 'temurin'
           cache: maven
       
-      - name: Ejecutar Pruebas Unitarias (TDD)
+      - name: Run Unit Tests
         run: mvn -B test -Dtest=*ServiceTest --file pom.xml
-      
-      - name: Generar reporte de tests Fase 1
-        if: always()
-        run: |
-          echo "✓ Fase 1 - TDD: Pruebas Unitarias completadas"
 
-  # Stage 3: Test Fase 2 (BDD - Behavior Driven Development)
+  # Stage 3: Test Fase 2 (BDD - Acceptance Tests)
   test-fase-2:
-    name: "✅ Fase 2 - BDD"
+    name: Fase 2 - Acceptance Tests
     runs-on: ubuntu-latest
     needs: build
 
@@ -68,19 +63,14 @@ jobs:
           distribution: 'temurin'
           cache: maven
       
-      - name: Ejecutar Pruebas de Aceptación (BDD)
+      - name: Run Acceptance Tests
         run: mvn -B test -Dtest=*AcceptanceTest --file pom.xml
-      
-      - name: Generar reporte de tests Fase 2
-        if: always()
-        run: |
-          echo "✓ Fase 2 - BDD: Pruebas de Aceptación completadas"
 
-  # Stage 4: Integration & Quality Checks (ATDD - Acceptance Test Driven Development)
+  # Stage 4: Test Fase 3 (Integration Tests)
   test-fase-3:
-    name: "🔍 Fase 3 - ATDD"
+    name: Fase 3 - Integration Tests
     runs-on: ubuntu-latest
-    needs: [test-fase-1, test-fase-2]
+    needs: build
 
     steps:
       - name: Checkout code
@@ -93,32 +83,40 @@ jobs:
           distribution: 'temurin'
           cache: maven
       
-      - name: Validar integridad del código
-        run: |
-          echo "✓ Validando estructura del proyecto..."
-          mvn verify -DskipTests -q
-          echo "✓ Proyecto validado correctamente"
+      - name: Run Integration Tests
+        run: mvn -B verify --file pom.xml
       
-      - name: Verificar cobertura
-        run: |
-          echo "✓ Fase 3 - ATDD: Validaciones completadas"
-          echo "✓ Todos los tests pasaron exitosamente"
+      - name: Validate Project
+        run: mvn clean install -DskipTests -q
 
-  # Final Status
-  status:
-    name: "🎉 Estado Final"
+  # Final Summary
+  summary:
+    name: Test Report
     runs-on: ubuntu-latest
     needs: [build, test-fase-1, test-fase-2, test-fase-3]
     if: always()
 
     steps:
-      - name: Pipeline Status
+      - name: Pipeline Results
         run: |
-          echo "================================"
-          echo "✅ PIPELINE COMPLETADO CON ÉXITO"
-          echo "================================"
-          echo "Build: ✓ Compilación exitosa"
-          echo "Fase 1 - TDD: ✓ Tests unitarios pasados"
-          echo "Fase 2 - BDD: ✓ Tests de aceptación pasados"
-          echo "Fase 3 - ATDD: ✓ Validaciones completadas"
-          echo "================================"
+          BUILD_STATUS="${{ needs.build.result }}"
+          FASE1_STATUS="${{ needs.test-fase-1.result }}"
+          FASE2_STATUS="${{ needs.test-fase-2.result }}"
+          FASE3_STATUS="${{ needs.test-fase-3.result }}"
+          
+          echo "=========================================="
+          echo "PIPELINE TEST RESULTS"
+          echo "=========================================="
+          echo "Build: $BUILD_STATUS"
+          echo "Fase 1 - Unit Tests: $FASE1_STATUS"
+          echo "Fase 2 - Acceptance Tests: $FASE2_STATUS"
+          echo "Fase 3 - Integration Tests: $FASE3_STATUS"
+          echo "=========================================="
+          
+          if [ "$BUILD_STATUS" = "success" ] && [ "$FASE1_STATUS" = "success" ] && [ "$FASE2_STATUS" = "success" ] && [ "$FASE3_STATUS" = "success" ]; then
+            echo "All tests passed successfully"
+            exit 0
+          else
+            echo "Some tests failed - check logs"
+            exit 1
+          fi
