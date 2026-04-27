@@ -47,10 +47,8 @@ class ReservationAcceptanceTest {
         // Crear un huésped de prueba con email único
         GuestEntity guest = new GuestEntity();
         guest.setIdentification(UUID.randomUUID().toString());
-        guest.setFirstName("Juan");
-        guest.setLastName("Pérez");
+        guest.setName("Juan Pérez");
         guest.setEmail("juan-" + UUID.randomUUID() + "@example.com");
-        guest.setPhoneNumber("3001234567");
         GuestEntity savedGuest = guestRepository.save(guest);
         guestId = savedGuest.getId();
 
@@ -203,10 +201,8 @@ class ReservationAcceptanceTest {
         // Intentar crear otra reserva que se superpone
         GuestEntity guest2 = new GuestEntity();
         guest2.setIdentification(UUID.randomUUID().toString());
-        guest2.setFirstName("Maria");
-        guest2.setLastName("Garcia");
+        guest2.setName("Maria Garcia");
         guest2.setEmail("maria-" + UUID.randomUUID() + "@example.com");
-        guest2.setPhoneNumber("3002345678");
         GuestEntity savedGuest2 = guestRepository.save(guest2);
 
         ReservationDto overlapping = new ReservationDto();
