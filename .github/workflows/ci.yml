@@ -94,27 +94,37 @@ jobs:
         working-directory: ./atdd-playwright
         run: npm install
       
+      - name: Install Playwright browsers
+        working-directory: ./atdd-playwright
+        run: npx playwright install
+      
       - name: Build with Maven
         run: mvn -B clean package -DskipTests
       
-      - name: Start Spring Boot application
-        run: mvn -B spring-boot:run -DskipTests &
-        env:
-          MAVEN_OPTS: "-Dspring.jpa.hibernate.ddl-auto=create-drop"
+      - name: Start Spring Boot application in background
+        run: |
+          nohup mvn -B spring-boot:run -DskipTests > spring-boot.log 2>&1 &
+          echo "Spring Boot started in background"
       
       - name: Wait for application to start
         run: |
           for i in {1..30}; do
-            curl -s http://localhost:8080/api/room && echo "App is ready" && exit 0
-            echo "Waiting for app... attempt $i"
+            if curl -s http://localhost:8080/api/room > /dev/null 2>&1; then
+              echo "✓ App is ready"
+              exit 0
+            fi
+            echo "⏳ Waiting for app... attempt $i/30"
             sleep 2
           done
-          echo "App failed to start"
+          echo "✗ App failed to start"
+          echo "=== Spring Boot Log ==="
+          cat spring-boot.log
           exit 1
       
       - name: Run Playwright ATDD Tests
         working-directory: ./atdd-playwright
         run: npx playwright test
+        timeout-minutes: 5
       
       - name: Upload Playwright report
         if: always()
