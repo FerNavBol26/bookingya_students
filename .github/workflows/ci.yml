@@ -45,6 +45,8 @@ jobs:
       
       - name: Run Unit Tests
         run: mvn -B test -Dtest=*ServiceTest --file pom.xml
+        env:
+          MAVEN_OPTS: -XX:+EnableDynamicAgentLoading
 
   # Stage 3: Test Fase 2 (BDD - Acceptance Tests)
   test-fase-2:
@@ -65,6 +67,8 @@ jobs:
       
       - name: Run Acceptance Tests
         run: mvn -B test -Dtest=*AcceptanceTest --file pom.xml
+        env:
+          MAVEN_OPTS: -XX:+EnableDynamicAgentLoading
 
   # Stage 4: Test Fase 3 (ATDD - Playwright Integration Tests)
   test-fase-3:
@@ -99,28 +103,45 @@ jobs:
       
       - name: Start Spring Boot application in background
         run: |
-          nohup mvn -B spring-boot:run -DskipTests > spring-boot.log 2>&1 &
-          echo "Spring Boot started in background"
+          java -jar target/bookingya-0.0.1-SNAPSHOT.jar > spring-boot.log 2>&1 &
+          echo $! > spring-boot.pid
+          echo "Spring Boot started with PID $(cat spring-boot.pid)"
       
       - name: Wait for application to start
         run: |
-          for i in {1..30}; do
+          for i in {1..60}; do
             if curl -s http://localhost:8080/api/room > /dev/null 2>&1; then
-              echo "✓ App is ready"
+              echo "✓ App is ready after $((i*2)) seconds"
               exit 0
             fi
-            echo "⏳ Waiting for app... attempt $i/30"
+            echo "⏳ Waiting for app... attempt $i/60 ($(($i*2))s)"
             sleep 2
           done
-          echo "✗ App failed to start"
-          echo "=== Spring Boot Log ==="
-          cat spring-boot.log
+          echo "✗ App failed to start within 120 seconds"
+          echo "=== Spring Boot Log (last 50 lines) ==="
+          tail -50 spring-boot.log
           exit 1
       
       - name: Run Playwright ATDD Tests
         working-directory: ./atdd-playwright
         run: npx playwright test
         timeout-minutes: 5
+      
+      - name: Show Spring Boot logs if tests failed
+        if: failure()
+        run: |
+          echo "=== Spring Boot Log (last 100 lines) ==="
+          tail -100 spring-boot.log
+          echo "=== Checking if app is still running ==="
+          curl -v http://localhost:8080/api/room || echo "App is not responding"
+      
+      - name: Stop Spring Boot application
+        if: always()
+        run: |
+          if [ -f spring-boot.pid ]; then
+            kill $(cat spring-boot.pid) 2>/dev/null || true
+            echo "Spring Boot process stopped"
+          fi
       
       - name: Upload Playwright report
         if: always()
